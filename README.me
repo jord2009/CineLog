@@ -1,0 +1,77 @@
+# CineLog 🎬
+
+A modern movie rating and watchlist platform built with .NET and The Movie Database (TMDb) API.
+
+## Features ✨
+
+- 🔐 **JWT Authentication** - Secure user registration and login
+- 🎬 **Movie Database Integration** - Real movie data from TMDb API
+- ⭐ **Movie Rating System** - Rate and review your favorite films
+- 📝 **Personal Watchlists** - Track what you want to watch
+- 👥 **User Profiles** - Manage your movie preferences
+- 🏗️ **Clean Architecture** - Maintainable, testable, and scalable code
+
+## Technology Stack 🛠️
+
+- **.NET 9** - Latest .NET framework
+- **ASP.NET Core Web API** - RESTful API backend
+- **Entity Framework Core** - ORM with PostgreSQL
+- **PostgreSQL** - Production-ready database
+- **JWT Bearer Authentication** - Secure token-based auth
+- **Swagger/OpenAPI** - Interactive API documentation
+- **TMDb API** - The Movie Database integration
+
+## Architecture 🏛️
+
+This project follows **Clean Architecture** principles with clear separation of concerns:
+├── CineLog.Core/          # Business logic and domain entities
+├── CineLog.Infrastructure/ # Data access and external services
+├── CineLog.API/           # Web API controllers and configuration
+└── CineLog.Tests/         # Unit and integration tests
+
+## Getting Started 🚀
+
+### Prerequisites
+
+- .NET 9 SDK
+- PostgreSQL
+- TMDb API Key
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/CineLog.git
+   cd CineLog
+   
+2. Set up configuration
+   cp CineLog.API/appsettings.example.json CineLog.API/appsettings.json
+	
+	# Edit appsettings.json with your database and API keys
+
+3. Run database migrations
+	dotnet ef database update --project CineLog.Infrastructure --startup-project CineLog.API
+
+4. Run the application
+	dotnet run --project CineLog.API
+	
+5. Open Swagger UI
+	Navigate to https://localhost:5003/swagger
+	
+	POST /api/auth/register - User registration
+	POST /api/auth/login - User login
+	GET /api/auth/me - Get current user info
+	GET /api/movies/search - Search movies
+	GET /api/movies/trending - Get trending movies
+	GET /api/movies/{id} - Get movie details
+
+Contributing 🤝
+
+Fork the repository
+Create a feature branch
+Make your changes
+Add tests if applicable
+Submit a pull request
+
+License 📄
+This project is licensed under the MIT License.
