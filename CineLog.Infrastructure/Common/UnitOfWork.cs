@@ -82,9 +82,20 @@ public class RatingRepository : BaseRepository<Core.Entities.UserRating>, IRatin
     public RatingRepository(CineLogDbContext context) : base(context) { }
 
     // TODO: Implement all interface methods - just stubs for now
-    public Task<Core.Entities.UserRating?> GetByUserAndMediaAsync(Guid userId, Guid mediaId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-    public Task<IEnumerable<Core.Entities.UserRating>> GetByUserAsync(Guid userId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-    public Task<IEnumerable<Core.Entities.UserRating>> GetByMediaAsync(Guid mediaId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+    public async Task<Core.Entities.UserRating?> GetByUserAndMediaAsync(Guid userId, Guid mediaId, CancellationToken cancellationToken = default)
+    {
+        return await FirstOrDefaultAsync(r => r.UserId == userId && r.MediaId == mediaId, cancellationToken);
+    }
+
+    public async Task<IEnumerable<Core.Entities.UserRating>> GetByUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await FindAsync(r => r.UserId == userId, cancellationToken);
+    }
+
+    public async Task<IEnumerable<Core.Entities.UserRating>> GetByMediaAsync(Guid mediaId, CancellationToken cancellationToken = default)
+    {
+        return await FindAsync(r => r.MediaId == mediaId, cancellationToken);
+    }
     public Task<IEnumerable<Core.Entities.UserRating>> GetTopRatedByUserAsync(Guid userId, int count = 10, CancellationToken cancellationToken = default) => throw new NotImplementedException();
     public Task<IEnumerable<Core.Entities.UserRating>> GetRecentRatingsByUserAsync(Guid userId, int count = 10, CancellationToken cancellationToken = default) => throw new NotImplementedException();
     public Task<IEnumerable<Core.Entities.UserRating>> GetRatingsWithReviewsAsync(Guid? userId = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default) => throw new NotImplementedException();
