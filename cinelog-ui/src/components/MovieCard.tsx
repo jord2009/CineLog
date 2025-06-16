@@ -1,5 +1,4 @@
-﻿// src/components/MovieCard.tsx - Clean rewrite to fix syntax issues
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import type { Movie } from '../types/api';
 
 interface MovieCardProps {
@@ -134,8 +133,10 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, onRate, onClick, showRatin
                         {onRate && (
                             <button
                                 onClick={(e) => {
+                                    console.log('🔘 Rate button clicked directly!');
                                     e.stopPropagation();
-                                    onRate(movie);
+                                    console.log('🔘 About to call onRate with:', movie.title);
+                                    onRate?.(movie);
                                 }}
                                 className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-1 px-3 rounded transition duration-200"
                             >

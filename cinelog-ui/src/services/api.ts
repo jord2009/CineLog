@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { AuthResponse, Movie, RatingResponse } from '../types/api.ts';
+import type { AuthResponse, Movie, RatingResponse } from '../types/api';
 
 const API_BASE_URL = 'http://localhost:5003/api';
 
@@ -25,6 +25,13 @@ export const authApi = {
 
     getCurrentUser: () =>
         api.get('/auth/me'),
+
+    // Email verification endpoints
+    verifyEmail: (token: string) =>
+        api.post('/auth/verify-email', { token }),
+
+    resendVerificationEmail: () =>
+        api.post('/auth/resend-verification'),
 };
 
 export const moviesApi = {

@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { moviesApi } from '../services/api';
 import MovieCard from '../components/MovieCard';
+import AuthModal from '../components/AuthModal';
+import RatingModal from '../components/RatingModal';
+import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import type { Movie } from '../types/api';
+import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 
 const HomePage: React.FC = () => {
@@ -11,6 +15,10 @@ const HomePage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSearching, setIsSearching] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [authModalOpen, setAuthModalOpen] = useState(false);
+    const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
+    const [ratingModalOpen, setRatingModalOpen] = useState(false);
+    const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
     const { isAuthenticated, user } = useAuth();
 
     useEffect(() => {
@@ -72,17 +80,68 @@ const HomePage: React.FC = () => {
         setError(null);
     };
 
+    const handleRatingSubmitted = async (rating: number) => {
+        // Refresh trending movies to show updated ratings
+        await loadTrendingMovies();
+
+        // If we have search results, refresh those too
+        if (searchResults.length > 0 && searchQuery) {
+            try {
+                setIsSearching(true);
+                const response = await moviesApi.search(searchQuery);
+                setSearchResults(response.data.results || []);
+            } catch (error) {
+                console.error('Error refreshing search results:', error);
+            } finally {
+                setIsSearching(false);
+            }
+        }
+    };
+
     const handleMovieClick = (movie: Movie) => {
         console.log('Clicked movie:', movie);
     };
 
     const handleRateMovie = (movie: Movie) => {
-        console.log('Rate movie:', movie);
+        console.log('🎬 Rate button clicked!', movie);
+        console.log('🔐 isAuthenticated:', isAuthenticated);
+        console.log('👤 user:', user);
+
+        if (!isAuthenticated) {
+            console.log('❌ Not authenticated - opening auth modal');
+            setAuthModalTab('login');
+            setAuthModalOpen(true);
+            return;
+        }
+
+        if (!user?.isEmailVerified) {
+            console.log('❌ Email not verified');
+            alert('Please verify your email address before rating movies.');
+            return;
+        }
+
+        console.log('✅ All checks passed - opening rating modal');
+        setSelectedMovie(movie);
+        setRatingModalOpen(true);
     };
 
     return (
         <div className="min-h-screen bg-gray-900">
-            {/* Hero Section */}
+            {/* Navigation Bar */}
+            <Navbar
+                onLoginClick={() => {
+                    setAuthModalTab('login');
+                    setAuthModalOpen(true);
+                }}
+                onRegisterClick={() => {
+                    setAuthModalTab('register');
+                    setAuthModalOpen(true);
+                }}
+            />
+            {/* Email Verification Banner */}
+            <EmailVerificationBanner />
+
+            {/* Hero Section - Reduced height for more content space */}
             <div className="relative h-[400px] bg-gradient-to-r from-blue-900 to-purple-900 flex items-center justify-center">
                 <div className="text-center z-10 w-full max-w-7xl mx-auto px-8">
                     <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
@@ -92,7 +151,7 @@ const HomePage: React.FC = () => {
                         Discover, Rate, and Track Your Favorite Movies
                     </p>
 
-                    {/* Search Bar */}
+                    {/* Search Bar - Full width on large screens */}
                     <form onSubmit={handleSearch} className="w-full max-w-5xl mx-auto">
                         <div className="flex shadow-2xl">
                             <input
@@ -125,7 +184,7 @@ const HomePage: React.FC = () => {
                 <div className="absolute inset-0 bg-black opacity-40"></div>
             </div>
 
-            {/* Main Content Container */}
+            {/* Main Content Container - Full width with better spacing */}
             <div className="w-full px-4 lg:px-8 py-8">
 
                 {/* Error Display */}
@@ -214,10 +273,22 @@ const HomePage: React.FC = () => {
                                 Create an account to rate movies, build your watchlist, and discover new favorites!
                             </p>
                             <div className="space-x-4">
-                                <button className="btn-primary text-lg px-6 py-2">
+                                <button
+                                    onClick={() => {
+                                        setAuthModalTab('register');
+                                        setAuthModalOpen(true);
+                                    }}
+                                    className="btn-primary text-lg px-6 py-2"
+                                >
                                     Sign Up
                                 </button>
-                                <button className="btn-secondary text-lg px-6 py-2">
+                                <button
+                                    onClick={() => {
+                                        setAuthModalTab('login');
+                                        setAuthModalOpen(true);
+                                    }}
+                                    className="btn-secondary text-lg px-6 py-2"
+                                >
                                     Log In
                                 </button>
                             </div>
@@ -225,6 +296,21 @@ const HomePage: React.FC = () => {
                     </section>
                 )}
             </div>
+
+            {/* Auth Modal */}
+            <AuthModal
+                isOpen={authModalOpen}
+                onClose={() => setAuthModalOpen(false)}
+                defaultTab={authModalTab}
+            />
+
+            {/* Rating Modal */}
+            <RatingModal
+                isOpen={ratingModalOpen}
+                onClose={() => setRatingModalOpen(false)}
+                movie={selectedMovie}
+                onRatingSubmitted={handleRatingSubmitted}
+            />
         </div>
     );
 };

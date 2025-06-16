@@ -113,4 +113,19 @@ public class AuthController : ControllerBase
             return StatusCode(500, new { message = "An error occurred" });
         }
     }
+
+    [HttpPost("verify-email")]
+    public IActionResult VerifyEmail([FromBody] VerifyEmailRequest request)
+    {
+        // Temporary stub - just return success
+        return Ok(new { message = "Email verified successfully" });
+    }
+
+    [HttpPost("resend-verification")]
+    [Authorize]
+    public IActionResult ResendVerificationEmail()
+    {
+        // Temporary stub - just return success
+        return Ok(new { message = "Verification email sent" });
+    }
 }
