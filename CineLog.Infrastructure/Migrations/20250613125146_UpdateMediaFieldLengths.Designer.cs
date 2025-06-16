@@ -3,6 +3,7 @@ using System;
 using CineLog.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CineLog.Infrastructure.Migrations
 {
     [DbContext(typeof(CineLogDbContext))]
-    partial class CineLogDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250613125146_UpdateMediaFieldLengths")]
+    partial class UpdateMediaFieldLengths
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

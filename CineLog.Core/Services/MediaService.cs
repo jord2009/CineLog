@@ -78,7 +78,7 @@ public class MediaService : IMediaService
         DateTime? releaseDate = null;
         if (!string.IsNullOrEmpty(tmdbMovie.ReleaseDate) && DateTime.TryParse(tmdbMovie.ReleaseDate, out var parsedDate))
         {
-            releaseDate = parsedDate;
+            releaseDate = DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
         }
 
         // Serialize genres
