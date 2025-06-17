@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿// src/pages/HomePage.tsx - Optimized version with smooth transitions
+import React, { useState, useEffect } from 'react';
 import { moviesApi } from '../services/api';
 import MovieCard from '../components/MovieCard';
 import AuthModal from '../components/AuthModal';
@@ -9,10 +10,12 @@ import type { Movie } from '../types/api';
 import { useAuth } from '../context/AuthContext';
 
 const HomePage: React.FC = () => {
+    console.log('Component loaded!');
+
     const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Movie[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [isTrendingLoading, setIsTrendingLoading] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -23,13 +26,39 @@ const HomePage: React.FC = () => {
     const [searchType, setSearchType] = useState<'movie' | 'tv'>('movie');
     const { isAuthenticated, user } = useAuth();
 
-    // Initial load only
+    // Initial load only - loads movies on first page visit
     useEffect(() => {
-        loadTrendingMovies();
+        loadInitialTrending();
     }, []);
 
-    // Handle search type changes without full reload
+    // Load trending content for first time
+    const loadInitialTrending = async () => {
+        try {
+            setIsInitialLoading(true);
+            setError(null);
+            console.log('🏠 Initial load: Loading trending movies...');
+
+            const response = await moviesApi.getTrending('week', 'movie');
+            console.log('Initial trending movies response:', response.data);
+
+            const movies = response.data.results || response.data || [];
+            setTrendingMovies(movies);
+
+            if (movies.length === 0) {
+                setError('No trending movies found. Check if your backend is running on http://localhost:5003');
+            }
+        } catch (error: any) {
+            console.error('Error loading initial trending:', error);
+            setError(`Failed to load trending movies: ${error.response?.data?.message || error.message}`);
+        } finally {
+            setIsInitialLoading(false);
+        }
+    };
+
+    // Handle smooth search type changes
     const handleSearchTypeChange = async (newType: 'movie' | 'tv') => {
+        if (newType === searchType) return; // Don't reload if same type
+
         console.log(`🔄 Switching from ${searchType} to ${newType}`);
         setSearchType(newType);
 
@@ -38,12 +67,12 @@ const HomePage: React.FC = () => {
         setSearchQuery('');
         setError(null);
 
-        // Load trending for new type with separate loading state
+        // Load trending for new type with overlay loading
         setIsTrendingLoading(true);
         try {
             console.log(`📡 Loading trending ${newType}s...`);
             const response = await moviesApi.getTrending('week', newType);
-            console.log(`Trending ${newType}s loaded:`, response.data);
+            console.log(`✅ Trending ${newType}s loaded:`, response.data);
 
             const movies = response.data.results || response.data || [];
             setTrendingMovies(movies);
@@ -59,26 +88,15 @@ const HomePage: React.FC = () => {
         }
     };
 
-    const loadTrendingMovies = async () => {
+    // Refresh trending without changing loading states (for after rating)
+    const refreshTrending = async () => {
         try {
-            setIsLoading(true);
-            setError(null);
-            console.log(`Loading trending ${searchType}s...`);
-
+            console.log('🔄 Refreshing trending content...');
             const response = await moviesApi.getTrending('week', searchType);
-            console.log(`Trending ${searchType}s response:`, response.data);
-
             const movies = response.data.results || response.data || [];
             setTrendingMovies(movies);
-
-            if (movies.length === 0) {
-                setError(`No trending ${searchType}s found. Check if your backend is running on http://localhost:5003`);
-            }
-        } catch (error) {
-            console.error(`Error loading trending ${searchType}s:`, error);
-            setError(`Failed to load trending ${searchType}s: ${error.response?.data?.message || error.message}`);
-        } finally {
-            setIsLoading(false);
+        } catch (error: any) {
+            console.error('Error refreshing trending:', error);
         }
     };
 
@@ -100,7 +118,7 @@ const HomePage: React.FC = () => {
             if (movies.length === 0) {
                 setError(`No ${searchType}s found for "${searchQuery}"`);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(`Error searching ${searchType}s:`, error);
             setError(`Search failed: ${error.response?.data?.message || error.message}`);
         } finally {
@@ -115,8 +133,8 @@ const HomePage: React.FC = () => {
     };
 
     const handleRatingSubmitted = async (rating: number) => {
-        // Refresh trending movies to show updated ratings
-        await loadTrendingMovies();
+        // Refresh trending movies to show updated ratings (without loading states)
+        await refreshTrending();
 
         // If we have search results, refresh those too
         if (searchResults.length > 0 && searchQuery) {
@@ -134,6 +152,7 @@ const HomePage: React.FC = () => {
 
     const handleMovieClick = (movie: Movie) => {
         console.log('Clicked movie:', movie);
+        // TODO: Navigate to movie details
     };
 
     const handleRateMovie = (movie: Movie) => {
@@ -143,15 +162,13 @@ const HomePage: React.FC = () => {
             return;
         }
 
-        // Check if email is verified
         if (!user?.isEmailVerified) {
-            // Could show a specific modal or just prevent rating
             alert('Please verify your email address before rating movies.');
             return;
         }
 
-        console.log('Rate movie:', movie);
-        // TODO: Open rating modal
+        setSelectedMovie(movie);
+        setRatingModalOpen(true);
     };
 
     return (
@@ -171,7 +188,7 @@ const HomePage: React.FC = () => {
             {/* Email Verification Banner */}
             <EmailVerificationBanner />
 
-            {/* Hero Section - Reduced height for more content space */}
+            {/* Hero Section */}
             <div className="relative h-[400px] bg-gradient-to-r from-blue-900 to-purple-900 flex items-center justify-center">
                 <div className="text-center z-10 w-full max-w-7xl mx-auto px-8">
                     <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
@@ -185,10 +202,7 @@ const HomePage: React.FC = () => {
                     <div className="max-w-5xl mx-auto mb-6">
                         <div className="flex justify-center space-x-4 mb-4">
                             <button
-                                onClick={() => {
-                                    console.log('Movie button clicked!');
-                                    handleSearchTypeChange('movie');
-                                }}
+                                onClick={() => handleSearchTypeChange('movie')}
                                 className={`px-6 py-2 rounded-lg font-semibold transition duration-200 ${searchType === 'movie'
                                         ? 'bg-blue-600 text-white'
                                         : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -197,10 +211,7 @@ const HomePage: React.FC = () => {
                                 🎬 Movies
                             </button>
                             <button
-                                onClick={() => {
-                                    console.log('TV button clicked!');
-                                    handleSearchTypeChange('tv');
-                                }}
+                                onClick={() => handleSearchTypeChange('tv')}
                                 className={`px-6 py-2 rounded-lg font-semibold transition duration-200 ${searchType === 'tv'
                                         ? 'bg-blue-600 text-white'
                                         : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -244,7 +255,7 @@ const HomePage: React.FC = () => {
                 <div className="absolute inset-0 bg-black opacity-40"></div>
             </div>
 
-            {/* Main Content Container - Full width with better spacing */}
+            {/* Main Content Container */}
             <div className="w-full px-4 lg:px-8 py-8">
 
                 {/* Error Display */}
@@ -255,7 +266,7 @@ const HomePage: React.FC = () => {
                             onClick={() => {
                                 setError(null);
                                 if (searchResults.length === 0) {
-                                    loadTrendingMovies();
+                                    handleSearchTypeChange(searchType); // Retry with current type
                                 }
                             }}
                             className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition duration-200"
@@ -271,7 +282,6 @@ const HomePage: React.FC = () => {
                         <h2 className="text-3xl font-bold text-white mb-6 px-4">
                             Search Results for "{searchQuery}" ({searchResults.length} found)
                         </h2>
-                        {/* Responsive grid that scales up to many columns on large screens */}
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 3xl:grid-cols-10 gap-4 lg:gap-6 px-4">
                             {searchResults.map((movie, index) => (
                                 <MovieCard
@@ -291,31 +301,44 @@ const HomePage: React.FC = () => {
                         Trending {searchType === 'movie' ? 'Movies' : 'TV Shows'} This Week ({trendingMovies.length})
                     </h2>
 
-                    {(isLoading || isTrendingLoading) ? (
+                    {isInitialLoading ? (
+                        /* Initial page load */
                         <div className="flex flex-col justify-center items-center h-64">
                             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mb-4"></div>
-                            <div className="text-white text-xl">
-                                {isLoading ? `Loading trending ${searchType}s...` : `Switching to ${searchType}s...`}
-                            </div>
+                            <div className="text-white text-xl">Loading trending movies...</div>
                             <div className="text-gray-400 mt-2">Connecting to backend at localhost:5003</div>
                         </div>
                     ) : trendingMovies.length > 0 ? (
-                        /* Ultra-wide responsive grid for large screens */
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 3xl:grid-cols-10 gap-4 lg:gap-6 px-4">
-                            {trendingMovies.map((movie, index) => (
-                                <MovieCard
-                                    key={movie.tmdbId || movie.id || index}
-                                    movie={movie}
-                                    onClick={handleMovieClick}
-                                    onRate={isAuthenticated ? handleRateMovie : undefined}
-                                />
-                            ))}
+                        /* Content with overlay loading */
+                        <div className="relative">
+                            {/* Trending loading overlay - appears over content */}
+                            {isTrendingLoading && (
+                                <div className="absolute inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-20 rounded-lg backdrop-blur-sm">
+                                    <div className="flex flex-col items-center">
+                                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-3"></div>
+                                        <div className="text-white text-lg font-medium">Switching to {searchType}s...</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Movie grid */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 3xl:grid-cols-10 gap-4 lg:gap-6 px-4">
+                                {trendingMovies.map((movie, index) => (
+                                    <MovieCard
+                                        key={movie.tmdbId || movie.id || index}
+                                        movie={movie}
+                                        onClick={handleMovieClick}
+                                        onRate={isAuthenticated ? handleRateMovie : undefined}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     ) : (
+                        /* Empty state */
                         <div className="text-center py-16">
                             <div className="text-gray-400 text-xl mb-4">No trending {searchType}s to display</div>
                             <button
-                                onClick={loadTrendingMovies}
+                                onClick={() => handleSearchTypeChange(searchType)}
                                 className="btn-primary"
                             >
                                 Retry Loading
