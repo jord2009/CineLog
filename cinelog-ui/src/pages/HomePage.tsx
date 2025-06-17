@@ -13,6 +13,7 @@ const HomePage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Movie[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isTrendingLoading, setIsTrendingLoading] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -20,32 +21,62 @@ const HomePage: React.FC = () => {
     const [ratingModalOpen, setRatingModalOpen] = useState(false);
     const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
     const [searchType, setSearchType] = useState<'movie' | 'tv'>('movie');
-    const [trendingType, setTrendingType] = useState<'movie' | 'tv'>('movie');
     const { isAuthenticated, user } = useAuth();
 
-    // Reload trending when type changes
+    // Initial load only
     useEffect(() => {
         loadTrendingMovies();
-    }, [trendingType]);
+    }, []);
 
-    const loadTrendingMovies = async () => {
+    // Handle search type changes without full reload
+    const handleSearchTypeChange = async (newType: 'movie' | 'tv') => {
+        console.log(`🔄 Switching from ${searchType} to ${newType}`);
+        setSearchType(newType);
+
+        // Clear search results when switching types
+        setSearchResults([]);
+        setSearchQuery('');
+        setError(null);
+
+        // Load trending for new type with separate loading state
+        setIsTrendingLoading(true);
         try {
-            setIsLoading(true);
-            setError(null);
-            console.log(`Loading trending ${trendingType}s...`);
-
-            const response = await moviesApi.getTrending('week', trendingType);
-            console.log(`Trending ${trendingType}s response:`, response.data);
+            console.log(`📡 Loading trending ${newType}s...`);
+            const response = await moviesApi.getTrending('week', newType);
+            console.log(`Trending ${newType}s loaded:`, response.data);
 
             const movies = response.data.results || response.data || [];
             setTrendingMovies(movies);
 
             if (movies.length === 0) {
-                setError(`No trending ${trendingType}s found. Check if your backend is running on http://localhost:5003`);
+                setError(`No trending ${newType}s found`);
+            }
+        } catch (error: any) {
+            console.error(`❌ Error loading trending ${newType}s:`, error);
+            setError(`Failed to load trending ${newType}s: ${error.response?.data?.message || error.message}`);
+        } finally {
+            setIsTrendingLoading(false);
+        }
+    };
+
+    const loadTrendingMovies = async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            console.log(`Loading trending ${searchType}s...`);
+
+            const response = await moviesApi.getTrending('week', searchType);
+            console.log(`Trending ${searchType}s response:`, response.data);
+
+            const movies = response.data.results || response.data || [];
+            setTrendingMovies(movies);
+
+            if (movies.length === 0) {
+                setError(`No trending ${searchType}s found. Check if your backend is running on http://localhost:5003`);
             }
         } catch (error) {
-            console.error(`Error loading trending ${trendingType}s:`, error);
-            setError(`Failed to load trending ${trendingType}s: ${error.response?.data?.message || error.message}`);
+            console.error(`Error loading trending ${searchType}s:`, error);
+            setError(`Failed to load trending ${searchType}s: ${error.response?.data?.message || error.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -154,7 +185,10 @@ const HomePage: React.FC = () => {
                     <div className="max-w-5xl mx-auto mb-6">
                         <div className="flex justify-center space-x-4 mb-4">
                             <button
-                                onClick={() => setSearchType('movie')}
+                                onClick={() => {
+                                    console.log('Movie button clicked!');
+                                    handleSearchTypeChange('movie');
+                                }}
                                 className={`px-6 py-2 rounded-lg font-semibold transition duration-200 ${searchType === 'movie'
                                         ? 'bg-blue-600 text-white'
                                         : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -163,7 +197,10 @@ const HomePage: React.FC = () => {
                                 🎬 Movies
                             </button>
                             <button
-                                onClick={() => setSearchType('tv')}
+                                onClick={() => {
+                                    console.log('TV button clicked!');
+                                    handleSearchTypeChange('tv');
+                                }}
                                 className={`px-6 py-2 rounded-lg font-semibold transition duration-200 ${searchType === 'tv'
                                         ? 'bg-blue-600 text-white'
                                         : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -250,16 +287,16 @@ const HomePage: React.FC = () => {
 
                 {/* Trending Section */}
                 <section className="max-w-[2000px] mx-auto">
-                    <div className="flex justify-between items-center mb-6 px-4">
-                        <h2 className="text-3xl font-bold text-white">
-                            Trending This Week ({trendingMovies.length})
-                        </h2>
-                    </div>
+                    <h2 className="text-3xl font-bold text-white mb-6 px-4">
+                        Trending {searchType === 'movie' ? 'Movies' : 'TV Shows'} This Week ({trendingMovies.length})
+                    </h2>
 
-                    {isLoading ? (
+                    {(isLoading || isTrendingLoading) ? (
                         <div className="flex flex-col justify-center items-center h-64">
                             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mb-4"></div>
-                            <div className="text-white text-xl">Loading trending {trendingType}s...</div>
+                            <div className="text-white text-xl">
+                                {isLoading ? `Loading trending ${searchType}s...` : `Switching to ${searchType}s...`}
+                            </div>
                             <div className="text-gray-400 mt-2">Connecting to backend at localhost:5003</div>
                         </div>
                     ) : trendingMovies.length > 0 ? (
@@ -276,7 +313,7 @@ const HomePage: React.FC = () => {
                         </div>
                     ) : (
                         <div className="text-center py-16">
-                            <div className="text-gray-400 text-xl mb-4">No trending {trendingType}s to display</div>
+                            <div className="text-gray-400 text-xl mb-4">No trending {searchType}s to display</div>
                             <button
                                 onClick={loadTrendingMovies}
                                 className="btn-primary"

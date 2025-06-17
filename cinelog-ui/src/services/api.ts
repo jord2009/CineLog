@@ -35,11 +35,15 @@ export const authApi = {
 };
 
 export const moviesApi = {
-    search: (query: string, page = 1) =>
-        api.get(`/movies/search?query=${encodeURIComponent(query)}&page=${page}`),
+    search: (query: string, page = 1, mediaType: 'movie' | 'tv' = 'movie') => {
+        const endpoint = mediaType === 'tv' ? '/tvshows/search' : '/movies/search';
+        return api.get(`${endpoint}?query=${encodeURIComponent(query)}&page=${page}`);
+    },
 
-    getTrending: (timeWindow = 'week') =>
-        api.get(`/movies/trending?timeWindow=${timeWindow}`),
+    getTrending: (timeWindow = 'week', mediaType: 'movie' | 'tv' = 'movie') => {
+        const endpoint = mediaType === 'tv' ? '/tvshows/trending' : '/movies/trending';
+        return api.get(`${endpoint}?timeWindow=${timeWindow}`);
+    },
 
     getDetails: (id: number) =>
         api.get(`/movies/${id}`),
