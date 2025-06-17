@@ -4,8 +4,8 @@ import MovieCard from '../components/MovieCard';
 import AuthModal from '../components/AuthModal';
 import RatingModal from '../components/RatingModal';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
-import type { Movie } from '../types/api';
 import Navbar from '../components/Navbar';
+import type { Movie } from '../types/api';
 import { useAuth } from '../context/AuthContext';
 
 const HomePage: React.FC = () => {
@@ -19,30 +19,33 @@ const HomePage: React.FC = () => {
     const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
     const [ratingModalOpen, setRatingModalOpen] = useState(false);
     const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+    const [searchType, setSearchType] = useState<'movie' | 'tv'>('movie');
+    const [trendingType, setTrendingType] = useState<'movie' | 'tv'>('movie');
     const { isAuthenticated, user } = useAuth();
 
+    // Reload trending when type changes
     useEffect(() => {
         loadTrendingMovies();
-    }, []);
+    }, [trendingType]);
 
     const loadTrendingMovies = async () => {
         try {
             setIsLoading(true);
             setError(null);
-            console.log('Loading trending movies...');
+            console.log(`Loading trending ${trendingType}s...`);
 
-            const response = await moviesApi.getTrending('week');
-            console.log('Trending movies response:', response.data);
+            const response = await moviesApi.getTrending('week', trendingType);
+            console.log(`Trending ${trendingType}s response:`, response.data);
 
             const movies = response.data.results || response.data || [];
             setTrendingMovies(movies);
 
             if (movies.length === 0) {
-                setError('No trending movies found. Check if your backend is running on http://localhost:5003');
+                setError(`No trending ${trendingType}s found. Check if your backend is running on http://localhost:5003`);
             }
         } catch (error) {
-            console.error('Error loading trending movies:', error);
-            setError(`Failed to load trending movies: ${error.response?.data?.message || error.message}`);
+            console.error(`Error loading trending ${trendingType}s:`, error);
+            setError(`Failed to load trending ${trendingType}s: ${error.response?.data?.message || error.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -55,19 +58,19 @@ const HomePage: React.FC = () => {
         try {
             setIsSearching(true);
             setError(null);
-            console.log('Searching for:', searchQuery);
+            console.log(`Searching for ${searchType}s:`, searchQuery);
 
-            const response = await moviesApi.search(searchQuery);
-            console.log('Search response:', response.data);
+            const response = await moviesApi.search(searchQuery, 1, searchType);
+            console.log(`${searchType} search response:`, response.data);
 
             const movies = response.data.results || response.data || [];
             setSearchResults(movies);
 
             if (movies.length === 0) {
-                setError(`No movies found for "${searchQuery}"`);
+                setError(`No ${searchType}s found for "${searchQuery}"`);
             }
         } catch (error) {
-            console.error('Error searching movies:', error);
+            console.error(`Error searching ${searchType}s:`, error);
             setError(`Search failed: ${error.response?.data?.message || error.message}`);
         } finally {
             setIsSearching(false);
@@ -88,7 +91,7 @@ const HomePage: React.FC = () => {
         if (searchResults.length > 0 && searchQuery) {
             try {
                 setIsSearching(true);
-                const response = await moviesApi.search(searchQuery);
+                const response = await moviesApi.search(searchQuery, 1, searchType);
                 setSearchResults(response.data.results || []);
             } catch (error) {
                 console.error('Error refreshing search results:', error);
@@ -103,26 +106,21 @@ const HomePage: React.FC = () => {
     };
 
     const handleRateMovie = (movie: Movie) => {
-        console.log('🎬 Rate button clicked!', movie);
-        console.log('🔐 isAuthenticated:', isAuthenticated);
-        console.log('👤 user:', user);
-
         if (!isAuthenticated) {
-            console.log('❌ Not authenticated - opening auth modal');
             setAuthModalTab('login');
             setAuthModalOpen(true);
             return;
         }
 
+        // Check if email is verified
         if (!user?.isEmailVerified) {
-            console.log('❌ Email not verified');
+            // Could show a specific modal or just prevent rating
             alert('Please verify your email address before rating movies.');
             return;
         }
 
-        console.log('✅ All checks passed - opening rating modal');
-        setSelectedMovie(movie);
-        setRatingModalOpen(true);
+        console.log('Rate movie:', movie);
+        // TODO: Open rating modal
     };
 
     return (
@@ -138,6 +136,7 @@ const HomePage: React.FC = () => {
                     setAuthModalOpen(true);
                 }}
             />
+
             {/* Email Verification Banner */}
             <EmailVerificationBanner />
 
@@ -148,17 +147,41 @@ const HomePage: React.FC = () => {
                         Welcome to CineLog
                     </h1>
                     <p className="text-xl md:text-2xl text-gray-300 mb-8">
-                        Discover, Rate, and Track Your Favorite Movies
+                        Discover, Rate, and Track Your Favorite Movies & TV Shows
                     </p>
 
-                    {/* Search Bar - Full width on large screens */}
+                    {/* Search Controls */}
+                    <div className="max-w-5xl mx-auto mb-6">
+                        <div className="flex justify-center space-x-4 mb-4">
+                            <button
+                                onClick={() => setSearchType('movie')}
+                                className={`px-6 py-2 rounded-lg font-semibold transition duration-200 ${searchType === 'movie'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                    }`}
+                            >
+                                🎬 Movies
+                            </button>
+                            <button
+                                onClick={() => setSearchType('tv')}
+                                className={`px-6 py-2 rounded-lg font-semibold transition duration-200 ${searchType === 'tv'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                    }`}
+                            >
+                                📺 TV Shows
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Search Bar */}
                     <form onSubmit={handleSearch} className="w-full max-w-5xl mx-auto">
                         <div className="flex shadow-2xl">
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search for movies like 'Fight Club', 'The Dark Knight'..."
+                                placeholder={`Search for ${searchType === 'movie' ? 'movies' : 'TV shows'} like '${searchType === 'movie' ? 'Fight Club' : 'Breaking Bad'}', '${searchType === 'movie' ? 'The Dark Knight' : 'Game of Thrones'}'...`}
                                 className="flex-1 px-6 py-3 text-lg bg-white text-gray-900 rounded-l-lg focus:outline-none focus:ring-4 focus:ring-blue-500"
                             />
                             <button
@@ -166,7 +189,7 @@ const HomePage: React.FC = () => {
                                 disabled={isSearching}
                                 className="px-10 py-3 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded-r-lg transition duration-200 disabled:opacity-50"
                             >
-                                {isSearching ? 'Searching...' : 'Search'}
+                                {isSearching ? 'Searching...' : `Search ${searchType === 'movie' ? 'Movies' : 'TV Shows'}`}
                             </button>
                         </div>
                         {searchResults.length > 0 && (
@@ -225,16 +248,18 @@ const HomePage: React.FC = () => {
                     </section>
                 )}
 
-                {/* Trending Movies */}
+                {/* Trending Section */}
                 <section className="max-w-[2000px] mx-auto">
-                    <h2 className="text-3xl font-bold text-white mb-6 px-4">
-                        Trending This Week ({trendingMovies.length})
-                    </h2>
+                    <div className="flex justify-between items-center mb-6 px-4">
+                        <h2 className="text-3xl font-bold text-white">
+                            Trending This Week ({trendingMovies.length})
+                        </h2>
+                    </div>
 
                     {isLoading ? (
                         <div className="flex flex-col justify-center items-center h-64">
                             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mb-4"></div>
-                            <div className="text-white text-xl">Loading trending movies...</div>
+                            <div className="text-white text-xl">Loading trending {trendingType}s...</div>
                             <div className="text-gray-400 mt-2">Connecting to backend at localhost:5003</div>
                         </div>
                     ) : trendingMovies.length > 0 ? (
@@ -251,7 +276,7 @@ const HomePage: React.FC = () => {
                         </div>
                     ) : (
                         <div className="text-center py-16">
-                            <div className="text-gray-400 text-xl mb-4">No trending movies to display</div>
+                            <div className="text-gray-400 text-xl mb-4">No trending {trendingType}s to display</div>
                             <button
                                 onClick={loadTrendingMovies}
                                 className="btn-primary"

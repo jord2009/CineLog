@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿// src/components/RatingModal.tsx
+import React, { useState, useEffect } from 'react';
 import type { Movie } from '../types/api';
 import { ratingsApi } from '../services/api';
 
@@ -36,7 +37,8 @@ const RatingModal: React.FC<RatingModalProps> = ({
         if (!movie) return;
 
         try {
-            const response = await ratingsApi.getMyRatingForMedia(movie.id, movie.media_type);
+            const mediaType = getMediaType(movie); // Use smart detection here too
+            const response = await ratingsApi.getMyRatingForMedia(movie.id, mediaType);
             if (response.data) {
                 setExistingRating(response.data);
                 setRating(response.data.rating);
@@ -63,6 +65,27 @@ const RatingModal: React.FC<RatingModalProps> = ({
         onClose();
     };
 
+    // Helper function to determine media type
+    const getMediaType = (movie: any) => {
+        // If media_type is already set and valid, use it
+        if (movie.media_type && movie.media_type !== null) {
+            return movie.media_type;
+        }
+
+        // Detect based on available fields
+        if (movie.first_air_date || movie.name || movie.original_name) {
+            return "tv";
+        }
+
+        // Default to movie if we have typical movie fields
+        if (movie.release_date || movie.title || movie.original_title) {
+            return "movie";
+        }
+
+        // Ultimate fallback
+        return "movie";
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!movie || rating === 0) return;
@@ -70,18 +93,41 @@ const RatingModal: React.FC<RatingModalProps> = ({
         setIsSubmitting(true);
         setError(null);
 
+        // Smart media type detection
+        const mediaType = getMediaType(movie);
+
+        // Debug logging
+        console.log('🎬 Submitting rating:', {
+            tmdbId: movie.id,
+            mediaType: mediaType,
+            rating: rating,
+            review: review.trim() || undefined,
+            isSpoiler: isSpoiler,
+            originalMediaType: movie.media_type,
+            detectionReason: {
+                hasFirstAirDate: !!movie.first_air_date,
+                hasName: !!movie.name,
+                hasReleaseDate: !!movie.release_date,
+                hasTitle: !!movie.title
+            },
+            fullMovie: movie
+        });
+
         try {
-            await ratingsApi.createOrUpdate(
+            const response = await ratingsApi.createOrUpdate(
                 movie.id,
-                movie.media_type,
+                mediaType,
                 rating,
                 review.trim() || undefined,
                 isSpoiler
             );
 
+            console.log('✅ Rating saved successfully:', response.data);
             onRatingSubmitted?.(rating);
             handleClose();
         } catch (error: any) {
+            console.error('❌ Rating submission failed:', error);
+            console.error('Error response:', error.response?.data);
             setError(error.response?.data?.message || 'Failed to save rating. Please try again.');
         } finally {
             setIsSubmitting(false);
