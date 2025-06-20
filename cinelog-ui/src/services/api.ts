@@ -45,8 +45,10 @@ export const moviesApi = {
         return api.get(`${endpoint}?timeWindow=${timeWindow}`);
     },
 
-    getDetails: (id: number) =>
-        api.get(`/movies/${id}`),
+    getDetails: (id: number, mediaType: 'movie' | 'tv' = 'movie') => {
+        const endpoint = mediaType === 'tv' ? `/tvshows/${id}` : `/movies/${id}`;
+        return api.get(endpoint);
+    },
 };
 
 export const ratingsApi = {

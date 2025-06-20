@@ -1,5 +1,5 @@
-﻿// src/pages/HomePage.tsx - Optimized version with smooth transitions
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { moviesApi } from '../services/api';
 import MovieCard from '../components/MovieCard';
 import AuthModal from '../components/AuthModal';
@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 const HomePage: React.FC = () => {
     console.log('Component loaded!');
 
+    const navigate = useNavigate();
     const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Movie[]>([]);
@@ -151,8 +152,8 @@ const HomePage: React.FC = () => {
     };
 
     const handleMovieClick = (movie: Movie) => {
-        console.log('Clicked movie:', movie);
-        // TODO: Navigate to movie details
+        const mediaType = movie.media_type || (movie.first_air_date || movie.name ? 'tv' : 'movie');
+        navigate(`/${mediaType}/${movie.id}`);
     };
 
     const handleRateMovie = (movie: Movie) => {

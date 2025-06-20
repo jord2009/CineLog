@@ -122,6 +122,39 @@ public class TmdbMovieDetails : TmdbMediaItem
     public string? Status { get; set; }
 }
 
+public class TmdbTvDetails : TmdbMediaItem
+{
+    [JsonPropertyName("number_of_episodes")]
+    public int? NumberOfEpisodes { get; set; }
+
+    [JsonPropertyName("number_of_seasons")]
+    public int? NumberOfSeasons { get; set; }
+
+    [JsonPropertyName("last_air_date")]
+    public string? LastAirDate { get; set; }
+
+    [JsonPropertyName("genres")]
+    public List<TmdbGenre> Genres { get; set; } = new();
+
+    [JsonPropertyName("production_countries")]
+    public List<TmdbProductionCountry> ProductionCountries { get; set; } = new();
+
+    [JsonPropertyName("tagline")]
+    public string? Tagline { get; set; }
+
+    [JsonPropertyName("homepage")]
+    public string? Homepage { get; set; }
+
+    [JsonPropertyName("status")]
+    public string? Status { get; set; }
+
+    [JsonPropertyName("in_production")]
+    public bool InProduction { get; set; }
+
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+}
+
 public class TmdbGenre
 {
     [JsonPropertyName("id")]

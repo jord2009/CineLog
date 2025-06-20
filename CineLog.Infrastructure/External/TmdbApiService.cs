@@ -106,6 +106,30 @@ public class TmdbApiService : ITmdbApiService
         }
     }
 
+    public async Task<TmdbTvDetails> GetTvDetailsAsync(int tvId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Getting TV show details for ID: {TvId}", tvId);
+
+            var url = $"tv/{tvId}?api_key={_apiKey}";
+            var response = await _httpClient.GetAsync(url, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
+            var result = JsonSerializer.Deserialize<TmdbTvDetails>(jsonString, _jsonOptions);
+
+            _logger.LogInformation("Retrieved details for TV show: {Name}", result?.Name);
+
+            return result ?? throw new InvalidOperationException($"Failed to retrieve TV show details for ID: {tvId}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting TV show details for ID: {TvId}", tvId);
+            throw;
+        }
+    }
+
     public async Task<TmdbSearchResponse> GetTrendingAsync(string mediaType = "all", string timeWindow = "week", CancellationToken cancellationToken = default)
     {
         try

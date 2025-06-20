@@ -36,6 +36,21 @@ public class TvShowsController : ControllerBase
         }
     }
 
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetTvDetails(int id)
+    {
+        try
+        {
+            var result = await _tmdbService.GetTvDetailsAsync(id);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting tv details for ID: {Id}", id);
+            return StatusCode(500, "An error occurred while getting movie details");
+        }
+    }
+
     [HttpGet("trending")]
     public async Task<IActionResult> GetTrending([FromQuery] string timeWindow = "week")
     {

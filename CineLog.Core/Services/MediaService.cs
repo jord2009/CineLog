@@ -54,11 +54,14 @@ public class MediaService : IMediaService
             var tmdbMovie = await _tmdbApiService.GetMovieDetailsAsync(tmdbId, cancellationToken);
             newMedia = CreateMediaFromTmdbMovie(tmdbMovie, tmdbId);
         }
+        else if(mediaType == MediaType.TV)
+        {
+            var tmdbTv = await _tmdbApiService.GetTvDetailsAsync(tmdbId, cancellationToken);
+            newMedia = CreateMediaFromTmdbTv(tmdbTv, tmdbId);
+        }
         else
         {
-            // For now, we'll create a basic TV show entry
-            // In the future, we can add a GetTvDetailsAsync method to ITmdbApiService
-            throw new NotImplementedException("TV show support coming soon!");
+            throw new DomainException($"Unsupported media type: {mediaType}");
         }
 
         // Save to database
@@ -112,6 +115,53 @@ public class MediaService : IMediaService
             tagline: tmdbMovie.Tagline,
             homepage: tmdbMovie.Homepage,
             status: tmdbMovie.Status
+        );
+
+        return media;
+    }
+
+    private static Media CreateMediaFromTmdbTv(TmdbTvDetails tmdbTv, int tmdbId)
+    {
+        var media = Media.CreateFromTmdb(tmdbId, MediaType.TV, tmdbTv.Name ?? "Unknown TV Show");
+
+        // Parse first air date
+        DateTime? firstAirDate = null;
+        if (!string.IsNullOrEmpty(tmdbTv.FirstAirDate) && DateTime.TryParse(tmdbTv.FirstAirDate, out var parsedDate))
+        {
+            firstAirDate = DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
+        }
+
+        // Serialize genres
+        var genresJson = tmdbTv.Genres.Any()
+            ? JsonSerializer.Serialize(tmdbTv.Genres.Select(g => new { g.Id, g.Name }))
+            : null;
+
+        // Serialize production countries
+        var countriesJson = tmdbTv.ProductionCountries.Any()
+            ? JsonSerializer.Serialize(tmdbTv.ProductionCountries.Select(c => new { c.Iso31661, c.Name }))
+            : null;
+
+        media.UpdateFromTmdbData(
+            title: tmdbTv.Name ?? "Unknown TV Show",
+            originalTitle: tmdbTv.OriginalName,
+            overview: tmdbTv.Overview,
+            releaseDate: firstAirDate, 
+            posterPath: tmdbTv.PosterPath,
+            backdropPath: tmdbTv.BackdropPath,
+            genres: genresJson,
+            runtime: null, 
+            voteAverage: tmdbTv.VoteAverage,
+            voteCount: tmdbTv.VoteCount,
+            popularity: tmdbTv.Popularity,
+            originalLanguage: tmdbTv.OriginalLanguage,
+            productionCountries: countriesJson,
+            imdbId: null, 
+            adult: tmdbTv.Adult,
+            budget: null, 
+            revenue: null, 
+            tagline: tmdbTv.Tagline,
+            homepage: tmdbTv.Homepage,
+            status: tmdbTv.Status
         );
 
         return media;
